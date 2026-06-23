@@ -1,68 +1,77 @@
-import urllib.parse
-from sqlalchemy import create_engine, Column, Integer, String, DateTime
-from sqlalchemy.orm import sessionmaker, declarative_base
-from datetime import datetime
+from config.database import engine, Base, Session
+from repositories.usuario_repo import UsuarioRepository
+from repositories.tecnico_repo import TecnicoRepository
+from repositories.ticket_repo import TicketRepository
 
-# --- CONFIGURAÇÃO DA SENHA ---
-# O quote_plus garante que o '@' não quebre a conexão
-minha_senha = "Maranata1978@"
-senha_segura = urllib.parse.quote_plus(minha_senha)
+# Importar modelos para que o SQLAlchemy os reconheça
+from models.usuario import Usuario
+from models.tecnico import Tecnico
+from models.ticket import Ticket
 
-# --- CONEXÃO COM O MYSQL ---
-# Substitui 'root' se usares outro utilizador, e 'findora_db' pelo nome da tua base
-DB_URL = f"mysql+mysqlconnector://root:{senha_segura}@localhost/findora_db"
-
-engine = create_engine(DB_URL)
-Session = sessionmaker(bind=engine)
-Base = declarative_base()
-
-# --- MODELO DE DADOS ---
-class Usuario(Base):
-    __tablename__ = 'usuarios'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    nome = Column(String(100), nullable=False)
-    email = Column(String(100), unique=True, nullable=False)
-    criado_em = Column(DateTime, default=datetime.utcnow)
-
-# Cria as tabelas automaticamente
+# Cria todas as tabelas no MySQL (incluindo as novas)
 Base.metadata.create_all(engine)
 
-# --- REPOSITÓRIO (Lógica) ---
-class UsuarioRepository:
-    def __init__(self, session):
-        self.session = session
-
-    def adicionar(self, nome, email):
-        user = Usuario(nome=nome, email=email)
-        self.session.add(user)
-        self.session.commit()
-
-    def listar_todos(self):
-        return self.session.query(Usuario).all()
-
-# --- INTERFACE CLI (Menu) ---
-def main():
+def menu():
     session = Session()
-    repo = UsuarioRepository(session)
+    repo_usuario = UsuarioRepository(session)
+    repo_tecnico = TecnicoRepository(session)
+    repo_ticket = TicketRepository(session)
     
     while True:
-        print("\n--- FINDORA CLI ---")
-        print("1. Listar Usuários | 2. Adicionar Usuário | 0. Sair")
+        print("\n--- FINDORA: Sistema de Busca de Pessoas ---")
+        print("1. Listar pessoas | 2. Registar pessoa")
+        print("3. Buscar local | 4. Marcar 'Encontrado' | 5. Eliminar pessoa")
+        print("6. Registar Técnico | 7. Abrir Ticket de Busca | 8. Listar Tickets")
+        print("0. Sair")
+        
         opcao = input("Escolha uma opção: ")
         
         if opcao == "1":
-            usuarios = repo.listar_todos()
-            for u in usuarios:
-                print(f"ID: {u.id} | Nome: {u.nome} | Email: {u.email}")
+            for p in repo_usuario.listar_todos():
+                print(f"ID: {p.id} | Nome: {p.nome} | Status: {p.status}")
+        
         elif opcao == "2":
-            n = input("Nome: ")
-            e = input("Email: ")
-            repo.adicionar(n, e)
-            print("Usuário adicionado com sucesso!")
+            nome = input("Nome: ")
+            idade = input("Idade: ")
+            local = input("Última localização: ")
+            desc = input("Descrição física: ")
+            repo_usuario.adicionar(nome, idade, local, desc)
+            print("Registo efetuado!")
+        
+        elif opcao == "3":
+            loc = input("Localização: ")
+            for p in repo_usuario.buscar_por_localizacao(loc):
+                print(f"{p.nome} - Visto em: {p.localizacao_vista}")
+        
+        elif opcao == "4":
+            id_p = int(input("ID da pessoa encontrada: "))
+            repo_usuario.atualizar_status(id_p, "Encontrado")
+            print("Status atualizado!")
+
+        elif opcao == "5":
+            id_p = int(input("ID a eliminar: "))
+            repo_usuario.remover(id_p)
+            print("Registo eliminado.")
+            
+        elif opcao == "6":
+            nome = input("Nome do Técnico: ")
+            espec = input("Especialidade: ")
+            repo_tecnico.adicionar_tecnico(nome, espec)
+            print("Técnico registado!")
+
+        elif opcao == "7":
+            desc = input("Descrição do Ticket: ")
+            p_id = input("ID da pessoa: ")
+            t_id = input("ID do técnico responsável: ")
+            repo_ticket.criar_ticket(desc, p_id, t_id)
+            print("Ticket aberto com sucesso!")
+
+        elif opcao == "8":
+            for t in repo_ticket.listar_tickets():
+                print(f"Ticket ID: {t.id} | Desc: {t.descricao} | Status: {t.status} | Pessoa: {t.pessoa_id} | Tec: {t.tecnico_id}")
+                
         elif opcao == "0":
             break
-        else:
-            print("Opção inválida.")
 
 if __name__ == "__main__":
-    main()
+    menu()
