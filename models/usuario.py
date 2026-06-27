@@ -8,6 +8,9 @@ class Usuario(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     nome = Column(String(100), nullable=False)
     
+    # Campo adicionado para controle de autorização (perfil de acesso)
+    perfil = Column(String(20), default="tecnico")
+    
     # Adicionado para suportar a idade (Opção 2)
     idade = Column(Integer, nullable=True)
     
