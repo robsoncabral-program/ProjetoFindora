@@ -1,0 +1,9 @@
+# Pastas temporárias do Python
+__pycache__/
+
+# Ficheiros de log do sistema
+sistema.log
+
+# Opcional: Se usares ambientes virtuais (venv) no futuro, adiciona isto também:
+venv/
+.env
