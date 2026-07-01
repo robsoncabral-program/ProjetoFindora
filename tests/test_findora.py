@@ -1,6 +1,13 @@
+import sys
+import os
 import unittest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+# --- CONFIGURAÇÃO PARA ENCONTRAR OS MÓDULOS NA RAIZ ---
+# Isto permite que a pasta 'tests' aceda às pastas 'config', 'models' e 'repositories'
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from config.database import Base
 from models.tecnico import Tecnico
 from repositories.tecnico_repo import TecnicoRepository
